@@ -38,9 +38,20 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
  <div class="card"><h2>تسجيل الدخول</h2>
   <input id="loginEmail" type="email" autocomplete="email" placeholder="البريد الإلكتروني">
   <input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
-  <p id="loginError" class="error" role="alert"></p>
-  <button class="full" id="loginBtn">دخول</button><button class="secondary full" id="showRegister">إنشاء حساب جديد</button>
+  <p id="loginError" class="error" role="alert"></p><p id="loginSuccess" class="success" role="status"></p>
+  <button class="full" id="loginBtn">دخول</button>
+  <button class="secondary full" id="forgotPassword">طلب رمز سري</button>
+  <button class="secondary full" id="showRegister">إنشاء حساب جديد</button>
   <p class="notice">تسجيل الدخول والحسابات محفوظة عبر Supabase. لا تشارك كلمة مرورك مع أي شخص.</p>
+ </div>
+</section>
+<section id="recovery" class="page">
+ <div class="hero"><div class="globe">F</div><h2>تعيين كلمة مرور جديدة</h2><p class="muted">اختر كلمة مرور جديدة لحسابك.</p></div>
+ <div class="card">
+  <input id="recoveryPassword" type="password" autocomplete="new-password" placeholder="كلمة المرور الجديدة (8 أحرف على الأقل)">
+  <input id="recoveryPasswordConfirm" type="password" autocomplete="new-password" placeholder="تأكيد كلمة المرور الجديدة">
+  <p id="recoveryError" class="error" role="alert"></p><p id="recoverySuccess" class="success" role="status"></p>
+  <button class="full" id="saveRecoveryPassword">حفظ كلمة المرور الجديدة</button>
  </div>
 </section>
 <section id="register" class="page">
@@ -91,7 +102,7 @@ const SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 
 const DB_NAME="FLIP_DATABASE";let db,posts=[],mediaUrls=[];const $=id=>document.getElementById(id);
-let currentUser="",currentEmail="",currentUserId="",currentDisplayName="",authReady=false;
+let currentUser="",currentEmail="",currentUserId="",currentDisplayName="",authReady=false,passwordRecoveryMode=false;
 let enteringUserId="",enteringPromise=null;
 let eventsCache=[];
 let eventCameraRows=[];
@@ -189,6 +200,36 @@ $("loginBtn").onclick=async()=>{
  }
  finally{$("loginBtn").disabled=false;$("loginBtn").textContent="دخول";}
 };
+
+// استعادة كلمة المرور عبر رابط آمن من Supabase
+$("forgotPassword").onclick=async()=>{
+ const email=$("loginEmail").value.trim();
+ setAuthError("loginError","");setAuthError("loginSuccess","");
+ if(!email||!email.includes("@")){setAuthError("loginError","أدخل بريدك الإلكتروني أولاً.");return;}
+ const btn=$("forgotPassword");btn.disabled=true;btn.textContent="جارٍ إرسال رابط الاستعادة...";
+ try{
+  const redirectTo=window.location.origin+window.location.pathname;
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+  if(error)throw error;
+  setAuthError("loginSuccess","إذا كان البريد مسجلاً، فستصلك رسالة من Supabase تحتوي على رابط استعادة كلمة المرور. هذه النسخة ترسل رابطاً عبر البريد، وليس رمزاً رقمياً.");
+ }catch(e){setAuthError("loginError","تعذر إرسال رابط الاستعادة: "+(e.message||"حاول مرة أخرى."));}
+ finally{btn.disabled=false;btn.textContent="طلب رمز سري";}
+};
+$("saveRecoveryPassword").onclick=async()=>{
+ const password=$("recoveryPassword").value,confirm=$("recoveryPasswordConfirm").value;
+ setAuthError("recoveryError","");setAuthError("recoverySuccess","");
+ if(password.length<8){setAuthError("recoveryError","كلمة المرور يجب ألا تقل عن 8 أحرف.");return;}
+ if(password!==confirm){setAuthError("recoveryError","كلمتا المرور غير متطابقتين.");return;}
+ const btn=$("saveRecoveryPassword");btn.disabled=true;btn.textContent="جارٍ حفظ كلمة المرور...";
+ try{
+  const {error}=await sb.auth.updateUser({password});if(error)throw error;
+  passwordRecoveryMode=false;await sb.auth.signOut();leaveApp();
+  $("loginPassword").value="";setAuthError("loginError","");
+  setAuthError("loginSuccess","تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.");
+ }catch(e){setAuthError("recoveryError","تعذر تغيير كلمة المرور: "+(e.message||"قد يكون رابط الاستعادة منتهي الصلاحية."));}
+ finally{btn.disabled=false;btn.textContent="حفظ كلمة المرور الجديدة";}
+};
+
 $("logout").onclick=async()=>{try{const {error}=await sb.auth.signOut();if(error)throw error;leaveApp();}catch(e){alert("تعذر تسجيل الخروج: "+(e.message||"خطأ غير معروف"));}};
 
 function openDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,1);request.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains("posts"))d.createObjectStore("posts",{keyPath:"id"});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
@@ -359,10 +400,14 @@ async function start(){
  try{db=await openDB();posts=await loadPosts();posts.forEach(p=>{if(!Array.isArray(p.likes))p.likes=[];if(!Array.isArray(p.comments))p.comments=[];});}
  catch(e){console.error(e);alert("تعذر فتح قاعدة بيانات المنشورات المحلية.");}
  const {data,error}=await sb.auth.getSession();if(error){console.error(error);setAuthError("loginError","تعذر التحقق من الجلسة. تحقق من اتصال الإنترنت.");return;}
- if(data.session?.user){
+ const recoveryLink=window.location.hash.includes("type=recovery")||new URLSearchParams(window.location.search).get("type")==="recovery";
+ if(recoveryLink){passwordRecoveryMode=true;authReady=false;showPage("recovery");}
+ else if(data.session?.user){
   try{await enterApp(data.session.user);}catch(e){setAuthError("loginError",e.message||"تعذر إعداد ملف الحساب.");showPage("login");}
  }else{authReady=false;showPage("login");}
  sb.auth.onAuthStateChange((event,session)=>{
+  if(event==="PASSWORD_RECOVERY") { passwordRecoveryMode=true;authReady=false;showPage("recovery");return; }
+  if(passwordRecoveryMode)return;
   if(session?.user){
    if(currentUserId!==session.user.id&&!enteringUserId){
     void enterApp(session.user).catch(e=>{setAuthError("loginError",e.message||"تعذر إعداد ملف الحساب.");});
