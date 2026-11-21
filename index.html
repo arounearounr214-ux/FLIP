@@ -15,6 +15,7 @@ main{max-width:600px;margin:auto;padding:20px 15px 100px}.page{display:none}.pag
 @keyframes glow{to{box-shadow:0 0 35px #54dfff,0 0 85px #5422a7}}.card{background:linear-gradient(145deg,#211536,#100c1e);border:1px solid #9563ce66;border-radius:20px;padding:18px;margin:15px 0;box-shadow:0 8px 25px #0005}
 h2{text-align:center}p{line-height:1.7}.muted{color:#b7abc9;font-size:12px}
 input,textarea{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:1px solid #7654a8;background:#090714;color:white;font-size:15px}
+.password-wrap{display:flex;align-items:center;gap:7px;width:100%}.password-wrap input{flex:1;min-width:0;width:auto}.password-toggle{flex:0 0 48px;padding:12px 8px;margin:8px 0;background:#ffffff12;border:1px solid #7654a8;font-size:18px}
 button{border:0;border-radius:12px;padding:13px 17px;color:white;background:linear-gradient(110deg,#7135d5,#236fca);font-weight:bold;cursor:pointer}button.secondary{background:#ffffff12;border:1px solid #ffffff30}button.following{background:#ffffff12;border:1px solid #8ce9ff;color:#8ce9ff}.full{width:100%;margin-top:10px}
 .nav{position:fixed;bottom:0;left:0;right:0;z-index:5;display:flex;justify-content:space-around;padding:9px 2px;background:#090613f5;border-top:1px solid #ffffff25}.nav button{background:transparent;color:#c8bbdf;font-size:11px;padding:8px 5px}.nav button.active{color:#8ce9ff}
 .profile-head{display:flex;align-items:center;gap:12px}.avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:25px;background:linear-gradient(135deg,#9c61ff,#1e8dff);flex-shrink:0}
@@ -37,7 +38,7 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
  <div class="hero"><div class="globe">F</div><h2>مرحباً بك في FLIP</h2><p class="muted">عالمك الإبداعي يبدأ من هنا</p></div>
  <div class="card"><h2>تسجيل الدخول</h2>
   <input id="loginEmail" type="email" autocomplete="email" placeholder="البريد الإلكتروني">
-  <input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
+  <div class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور"><button class="password-toggle" type="button" data-toggle-password="loginPassword" aria-label="إظهار كلمة المرور" aria-pressed="false">👁</button></div>
   <p id="loginError" class="error" role="alert"></p><p id="loginSuccess" class="success" role="status"></p>
   <button class="full" id="loginBtn">دخول</button>
   <button class="secondary full" id="forgotPassword">طلب رمز سري</button>
@@ -48,8 +49,8 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
 <section id="recovery" class="page">
  <div class="hero"><div class="globe">F</div><h2>تعيين كلمة مرور جديدة</h2><p class="muted">اختر كلمة مرور جديدة لحسابك.</p></div>
  <div class="card">
-  <input id="recoveryPassword" type="password" autocomplete="new-password" placeholder="كلمة المرور الجديدة (8 أحرف على الأقل)">
-  <input id="recoveryPasswordConfirm" type="password" autocomplete="new-password" placeholder="تأكيد كلمة المرور الجديدة">
+  <div class="password-wrap"><input id="recoveryPassword" type="password" autocomplete="new-password" placeholder="كلمة المرور الجديدة (8 أحرف على الأقل)"><button class="password-toggle" type="button" data-toggle-password="recoveryPassword" aria-label="إظهار كلمة المرور" aria-pressed="false">👁</button></div>
+  <div class="password-wrap"><input id="recoveryPasswordConfirm" type="password" autocomplete="new-password" placeholder="تأكيد كلمة المرور الجديدة"><button class="password-toggle" type="button" data-toggle-password="recoveryPasswordConfirm" aria-label="إظهار كلمة المرور" aria-pressed="false">👁</button></div>
   <p id="recoveryError" class="error" role="alert"></p><p id="recoverySuccess" class="success" role="status"></p>
   <button class="full" id="saveRecoveryPassword">حفظ كلمة المرور الجديدة</button>
  </div>
@@ -59,8 +60,8 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
  <div class="card">
   <input id="registerName" maxlength="24" autocomplete="username" placeholder="اسم المستخدم (3–24 حرفاً)">
   <input id="registerEmail" type="email" autocomplete="email" placeholder="البريد الإلكتروني">
-  <input id="registerPassword" type="password" autocomplete="new-password" placeholder="كلمة المرور (8 أحرف على الأقل)">
-  <input id="registerConfirm" type="password" autocomplete="new-password" placeholder="تأكيد كلمة المرور">
+  <div class="password-wrap"><input id="registerPassword" type="password" autocomplete="new-password" placeholder="كلمة المرور (8 أحرف على الأقل)"><button class="password-toggle" type="button" data-toggle-password="registerPassword" aria-label="إظهار كلمة المرور" aria-pressed="false">👁</button></div>
+  <div class="password-wrap"><input id="registerConfirm" type="password" autocomplete="new-password" placeholder="تأكيد كلمة المرور"><button class="password-toggle" type="button" data-toggle-password="registerConfirm" aria-label="إظهار كلمة المرور" aria-pressed="false">👁</button></div>
   <p id="registerError" class="error" role="alert"></p><p id="registerSuccess" class="success" role="status"></p>
   <button class="full" id="registerBtn">إنشاء الحساب</button><button class="secondary full" id="backLogin">العودة لتسجيل الدخول</button>
  </div>
@@ -230,7 +231,31 @@ $("saveRecoveryPassword").onclick=async()=>{
  finally{btn.disabled=false;btn.textContent="حفظ كلمة المرور الجديدة";}
 };
 
-$("logout").onclick=async()=>{try{const {error}=await sb.auth.signOut();if(error)throw error;leaveApp();}catch(e){alert("تعذر تسجيل الخروج: "+(e.message||"خطأ غير معروف"));}};
+$("logout").onclick=async()=>{
+ const btn=$("logout");
+ if(btn.disabled)return;
+ btn.disabled=true;btn.textContent="جارٍ تسجيل الخروج...";
+ // حدّث الواجهة فور الضغط، ثم أكمل إنهاء جلسة Supabase.
+ leaveApp();
+ try{
+  const {error}=await sb.auth.signOut();
+  if(error)throw error;
+ }catch(e){
+  setAuthError("loginError","تعذر تأكيد تسجيل الخروج من الخادم: "+(e.message||"تحقق من اتصال الإنترنت، ثم حاول مجدداً."));
+  try{const {data}=await sb.auth.getSession();if(data.session?.user)await enterApp(data.session.user);}catch(restoreError){console.error(restoreError);}
+ }finally{btn.disabled=false;btn.textContent="تسجيل الخروج";}
+};
+
+document.querySelectorAll("[data-toggle-password]").forEach(button=>{
+ button.addEventListener("click",()=>{
+  const field=$(button.dataset.togglePassword);if(!field)return;
+  const show=field.type==="password";
+  field.type=show?"text":"password";
+  button.textContent=show?"🙈":"👁";
+  button.setAttribute("aria-label",show?"إخفاء كلمة المرور":"إظهار كلمة المرور");
+  button.setAttribute("aria-pressed",String(show));
+ });
+});
 
 function openDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,1);request.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains("posts"))d.createObjectStore("posts",{keyPath:"id"});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
 function dbAction(store,mode,action){return new Promise((resolve,reject)=>{const tx=db.transaction(store,mode);const req=action(tx.objectStore(store));req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
