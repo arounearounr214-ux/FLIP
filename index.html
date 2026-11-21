@@ -413,10 +413,10 @@ async function start(){
  // افحص علامة الاستعادة قبل انتظار قاعدة البيانات أو الجلسة.
  const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,""));
  const queryParams=new URLSearchParams(window.location.search);
- const recoveryLink=hashParams.get("type")==="recovery"||queryParams.get("type")==="recovery";
+ const recoveryLink=hashParams.get("type")==="recovery"||queryParams.get("type")==="recovery"||queryParams.has("code");
  const recoveryError=hashParams.get("error_description")||queryParams.get("error_description");
  if(recoveryLink){passwordRecoveryMode=true;authReady=false;showPage("recovery");}
- else if(recoveryError){setAuthError("loginError",decodeURIComponent(recoveryError.replace(/\+/g," ")));showPage("login");}
+ else if(recoveryError){setAuthError("loginError",recoveryError);showPage("login");}
  try{db=await openDB();posts=await loadPosts();posts.forEach(p=>{if(!Array.isArray(p.likes))p.likes=[];if(!Array.isArray(p.comments))p.comments=[];});}
  catch(e){console.error(e);alert("تعذر فتح قاعدة بيانات المنشورات المحلية.");}
  const {data,error}=await sb.auth.getSession();
