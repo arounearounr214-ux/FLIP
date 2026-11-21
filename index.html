@@ -25,6 +25,7 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
 .comment-form,.send-form{display:flex;gap:7px;align-items:center;margin-top:10px}.comment-form input,.send-form input{margin:0;min-width:0;flex:1}.comment-form button,.send-form button{padding:12px}
 .follow-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:10px;background:#ffffff09;border-radius:12px}.follow-row button{padding:9px 13px;white-space:nowrap}
 .stats{display:flex;gap:20px;margin-top:12px;color:#d9c9ff;font-size:13px}
+.notification-item{padding:13px;margin:9px 0;background:#ffffff0c;border:1px solid #ffffff18;border-radius:13px;line-height:1.6}.notification-item.unread{border-color:#8ce9ff88;background:#8ce9ff0c}.notification-item small{display:block;color:#b7abc9;margin-top:5px}.notification-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.notification-badge{display:inline-flex;min-width:18px;height:18px;padding:0 5px;align-items:center;justify-content:center;border-radius:20px;background:#e43d8c;color:white;font-size:10px;margin-right:4px}
 .chat-user{display:flex;align-items:center;gap:10px;padding:12px;margin:8px 0;background:#ffffff0c;border:1px solid #ffffff15;border-radius:13px;cursor:pointer}.chat-user .avatar{width:42px;height:42px;font-size:20px}.chat-user strong{flex:1}
 .chat-box{height:340px;overflow-y:auto;padding:12px;background:#09071480;border:1px solid #ffffff18;border-radius:15px;margin:12px 0}.message{max-width:82%;padding:11px 13px;border-radius:15px;margin:8px 0;line-height:1.5;overflow-wrap:anywhere}
 .message.mine{margin-right:auto;background:linear-gradient(120deg,#7135d5,#236fca);border-bottom-left-radius:4px}.message.theirs{margin-left:auto;background:#ffffff17;border-bottom-right-radius:4px}.message-time{display:block;font-size:10px;color:#ddd;margin-top:5px}
@@ -69,6 +70,7 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
 <section id="home" class="page"><div class="hero"><div class="globe">F</div><h2>مرحباً بك في FLIP</h2><p class="muted">شارك لحظاتك واكتشف أفكاراً جديدة</p></div><h2>آخر المنشورات</h2><div id="feed"></div></section>
 <section id="explore" class="page"><h2>اكتشف</h2><div id="exploreFeed"></div></section>
 <section id="create" class="page"><h2>إنشاء منشور</h2><div class="card"><textarea id="caption" placeholder="ماذا تريد أن تنشر؟"></textarea><input id="media" type="file" accept="image/*,video/*"><button class="full" id="publish">نشر على FLIP</button></div></section>
+<section id="notifications" class="page"><div class="notification-top"><h2>الإشعارات</h2><button class="secondary" id="refreshNotifications" type="button">تحديث</button></div><p id="notificationsMessage" class="muted" role="status"></p><div id="notificationsList"><p class="empty">جارٍ تحميل الإشعارات...</p></div></section>
 <section id="activity" class="page"><h2>النشاط</h2><div class="card"><p>مرحباً بك في مركز النشاط.</p><p class="muted">سيتم تطوير الإشعارات لاحقاً.</p></div></section>
 <section id="events" class="page">
  <h2>🎥 أحداث FLIP</h2>
@@ -95,7 +97,7 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
 </section>
 <section id="profile" class="page"><h2>حسابي</h2><div class="card"><div class="profile-head"><div class="avatar">F</div><div><h3 id="profileName"></h3><span class="muted" id="profileEmail"></span></div></div><div class="stats"><span id="profileCount">0 منشور</span><span id="followingCount">0 أتابع</span></div><button class="secondary full" id="logout">تسجيل الخروج</button></div><div class="card"><h3>👥 الحسابات التي أتابعها</h3><div id="followingList"></div></div><h3>منشوراتي</h3><div id="myPosts"></div></section>
 </main>
-<nav class="nav" id="navigation" hidden><button class="active" data-page="home">⌂<br>الرئيسية</button><button data-page="explore">⌕<br>اكتشف</button><button data-page="create">＋<br>إنشاء</button><button data-page="messages">✉<br>الرسائل</button><button data-page="activity">♡<br>النشاط</button><button data-page="events">🎥<br>الأحداث</button><button data-page="profile">◉<br>حسابي</button></nav>
+<nav class="nav" id="navigation" hidden><button class="active" data-page="home">⌂<br>الرئيسية</button><button data-page="explore">⌕<br>اكتشف</button><button data-page="create">＋<br>إنشاء</button><button data-page="messages">✉<br>الرسائل</button><button data-page="notifications">♧<br>إشعارات <span id="notificationCount" class="notification-badge" hidden>0</span></button><button data-page="activity">♡<br>النشاط</button><button data-page="events">🎥<br>الأحداث</button><button data-page="profile">◉<br>حسابي</button></nav>
 <script>
 /* إعداد Supabase: المفتاح publishable مخصص للواجهة ولا تضع هنا service_role key */
 const SUPABASE_URL="https://cljkvaegiheualdpzgwo.supabase.co";
@@ -107,6 +109,7 @@ let currentUser="",currentEmail="",currentUserId="",currentDisplayName="",authRe
 let enteringUserId="",enteringPromise=null;
 let eventsCache=[];
 let eventCameraRows=[];
+let notificationsCache=[];
 let following={};try{following=JSON.parse(localStorage.getItem("flip_following")||"{}");}catch(e){following={};}
 let messages=[];try{messages=JSON.parse(localStorage.getItem("flip_messages")||"[]");if(!Array.isArray(messages))messages=[];}catch(e){messages=[];}
 let activeChat="";
@@ -122,6 +125,7 @@ function showPage(name){
  if(name==="messages"){closeChatView();renderConversations();}
  if(authReady)render();
  if(name==="events"&&authReady)loadEvents();
+ if(name==="notifications"&&authReady)loadNotifications();
 }
 function setAuthError(id,msg){$(id).textContent=msg||"";}
 function displayName(user){return user?.user_metadata?.username||user?.email?.split("@")[0]||"";}
@@ -159,11 +163,13 @@ async function enterApp(user){
   $("navigation").hidden=false;$("profileEmail").textContent=currentEmail;
   $("profileName").textContent=currentDisplayName;
   showPage("home");
+  void loadNotifications();
  })();
  try{return await enteringPromise;}
  finally{if(enteringUserId===user.id){enteringUserId="";enteringPromise=null;}}
 }
 function leaveApp(){
+ notificationsCache=[];updateNotificationBadge();
  currentUser="";currentEmail="";currentUserId="";currentDisplayName="";authReady=false;activeChat="";
  eventsCache=[];eventCameraRows=[];localStorage.removeItem("flip_user");$("navigation").hidden=true;showPage("login");
 }
@@ -271,6 +277,43 @@ function postHTML(post){
  return `<article class="card"><div class="profile-head"><div class="avatar">F</div><div style="flex:1"><strong>${escapeHTML(post.author)}</strong></div>${follow}</div><p>${escapeHTML(post.caption||"")}</p>${mediaHTML(post)}<div class="post-actions"><button class="like-button ${liked?"liked":""}" data-action="like" data-id="${escapeHTML(post.id)}">${liked?"❤️":"🤍"} إعجاب (${post.likes.length})</button><button class="secondary" data-action="focus-comment" data-id="${escapeHTML(post.id)}">💬 تعليق (${post.comments.length})</button>${post.author!==currentUser?`<button class="secondary" data-action="message-user" data-user="${escapeHTML(post.author)}">✉ مراسلة</button>`:""}</div><div class="comments"><strong>التعليقات</strong><div>${comments||'<p class="muted">لا توجد تعليقات بعد.</p>'}</div><form class="comment-form" data-id="${escapeHTML(post.id)}"><input name="comment" maxlength="300" placeholder="اكتب تعليقاً..." required><button type="submit">إرسال</button></form></div></article>`;
 }
 function renderFollowing(){const list=myFollowing(),box=$("followingList");if(!list.length){box.innerHTML='<p class="empty">لا تتابع أي حساب حالياً.</p>';return;}box.innerHTML=list.map(n=>`<div class="follow-row"><strong>👤 ${escapeHTML(n)}</strong><button class="following" data-action="follow" data-user="${escapeHTML(n)}">إلغاء المتابعة</button></div>`).join("");}
+async function loadNotifications(){
+ if(!authReady||!currentUserId)return;
+ $("notificationsList").innerHTML='<p class="muted">جارٍ تحميل الإشعارات...</p>';
+ $("notificationsMessage").textContent="";
+ const {data,error}=await sb.from("flip_notifications")
+  .select("id,actor_username,notification_type,message,created_at,read_at")
+  .eq("recipient_id",currentUserId).order("created_at",{ascending:false}).limit(50);
+ if(error){
+  $("notificationsList").innerHTML='<p class="empty">تعذر تحميل الإشعارات.</p>';
+  $("notificationsMessage").textContent="تأكد أولاً من إنشاء جدول الإشعارات في Supabase.";
+  console.error("loadNotifications",error);return;
+ }
+ notificationsCache=data||[];renderNotifications();
+}
+function updateNotificationBadge(){
+ const count=notificationsCache.filter(n=>!n.read_at).length,el=$("notificationCount");
+ if(!el)return;el.textContent=count>99?"99+":String(count);el.hidden=count===0;
+}
+function renderNotifications(){
+ const box=$("notificationsList");if(!box)return;
+ if(!notificationsCache.length){box.innerHTML='<p class="empty">لا توجد إشعارات جديدة حتى الآن.</p>';updateNotificationBadge();return;}
+ box.innerHTML=notificationsCache.map(n=>`<article class="notification-item ${n.read_at?"":"unread"}"><strong>${escapeHTML(n.message||"لديك إشعار جديد")}</strong><small>${escapeHTML(n.actor_username||"مستخدم FLIP")} · ${new Date(n.created_at).toLocaleString("ar")}</small>${n.read_at?'<small>تمت القراءة</small>':`<button class="secondary" data-action="notification-read" data-id="${escapeHTML(n.id)}">تحديد كمقروء</button>`}</article>`).join("");
+ updateNotificationBadge();
+}
+async function sendFollowNotification(username){
+ const {data:target,error:lookupError}=await sb.from("profiles").select("id").eq("username",username).maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!target?.id||target.id===currentUserId)return;
+ const {error}=await sb.from("flip_notifications").insert({recipient_id:target.id,actor_id:currentUserId,actor_username:currentUser,notification_type:"follow",message:`بدأ ${currentDisplayName||currentUser} بمتابعتك`});
+ if(error)throw error;
+}
+async function markNotificationRead(id){
+ const {error}=await sb.from("flip_notifications").update({read_at:new Date().toISOString()}).eq("id",id).eq("recipient_id",currentUserId);
+ if(error){$("notificationsMessage").textContent="تعذر تحديث الإشعار: "+error.message;return;}
+ notificationsCache=notificationsCache.map(n=>n.id===id?{...n,read_at:new Date().toISOString()}:n);renderNotifications();
+}
+
 function render(){
  if(!authReady)return;clearUrls();const html=posts.slice().reverse().map(postHTML).join("")||'<div class="empty">لا توجد منشورات بعد.</div>';
  $("feed").innerHTML=html;$("exploreFeed").innerHTML=html;$("myPosts").innerHTML=posts.filter(p=>p.author===currentUser).slice().reverse().map(postHTML).join("")||'<div class="empty">لا توجد منشورات لك بعد.</div>';
@@ -369,6 +412,7 @@ async function reviewCameraRequest(cameraId,decision){
  await loadEvents();
 }
 $("refreshEvents").onclick=()=>loadEvents();
+$("refreshNotifications").onclick=()=>loadNotifications();
 $("eventForm").addEventListener("submit",async e=>{
  e.preventDefault();
  const title=$("eventTitle").value.trim(),description=$("eventDescription").value.trim();
@@ -415,7 +459,8 @@ document.addEventListener("click",async e=>{
  if(b.dataset.action==="camera-approve"){await reviewCameraRequest(b.dataset.id,"approved");return;}
  if(b.dataset.action==="camera-reject"){await reviewCameraRequest(b.dataset.id,"rejected");return;}
  if(b.dataset.action==="message-user"){showPage("messages");openChat(b.dataset.user);return;}
- if(b.dataset.action==="follow"){const n=b.dataset.user;if(!n||n===currentUser)return;const a=myFollowing(),i=a.indexOf(n);if(i>=0)a.splice(i,1);else a.push(n);saveFollowing();render();return;}
+ if(b.dataset.action==="follow"){const n=b.dataset.user;if(!n||n===currentUser)return;const a=myFollowing(),i=a.indexOf(n);if(i>=0)a.splice(i,1);else{a.push(n);try{await sendFollowNotification(n);}catch(err){console.warn("Follow notification was not sent",err);}}saveFollowing();render();return;}
+ if(b.dataset.action==="notification-read"){await markNotificationRead(b.dataset.id);return;}
  const post=posts.find(p=>p.id===b.dataset.id);if(!post)return;
  if(b.dataset.action==="like"){if(!Array.isArray(post.likes))post.likes=[];const i=post.likes.indexOf(currentUser);if(i>=0)post.likes.splice(i,1);else post.likes.push(currentUser);try{await savePost(post);render();}catch(err){alert("تعذر حفظ الإعجاب.");}}
  if(b.dataset.action==="focus-comment"){const input=b.closest(".card")?.querySelector('input[name="comment"]');if(input)input.focus();}
