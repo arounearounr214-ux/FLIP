@@ -40,7 +40,7 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
   <input id="loginPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور">
   <p id="loginError" class="error" role="alert"></p><p id="loginSuccess" class="success" role="status"></p>
   <button class="full" id="loginBtn">دخول</button>
-  <button class="secondary full" id="forgotPassword">طلب رمز سري</button>
+  <button class="secondary full" id="forgotPassword">نسيت كلمة المرور؟</button>
   <button class="secondary full" id="showRegister">إنشاء حساب جديد</button>
   <p class="notice">تسجيل الدخول والحسابات محفوظة عبر Supabase. لا تشارك كلمة مرورك مع أي شخص.</p>
  </div>
@@ -211,9 +211,9 @@ $("forgotPassword").onclick=async()=>{
   const redirectTo=window.location.origin+window.location.pathname;
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
   if(error)throw error;
-  setAuthError("loginSuccess","إذا كان البريد مسجلاً، فستصلك رسالة من Supabase تحتوي على رابط استعادة كلمة المرور. هذه النسخة ترسل رابطاً عبر البريد، وليس رمزاً رقمياً.");
+  setAuthError("loginSuccess","إذا كان البريد مسجلاً، فستصلك رسالة تحتوي على رابط استعادة كلمة المرور. افحص صندوق الوارد والرسائل غير المرغوب فيها.");
  }catch(e){setAuthError("loginError","تعذر إرسال رابط الاستعادة: "+(e.message||"حاول مرة أخرى."));}
- finally{btn.disabled=false;btn.textContent="طلب رمز سري";}
+ finally{btn.disabled=false;btn.textContent="نسيت كلمة المرور؟";}
 };
 $("saveRecoveryPassword").onclick=async()=>{
  const password=$("recoveryPassword").value,confirm=$("recoveryPasswordConfirm").value;
@@ -399,12 +399,10 @@ document.addEventListener("submit",async e=>{const form=e.target.closest(".comme
 async function start(){
  try{db=await openDB();posts=await loadPosts();posts.forEach(p=>{if(!Array.isArray(p.likes))p.likes=[];if(!Array.isArray(p.comments))p.comments=[];});}
  catch(e){console.error(e);alert("تعذر فتح قاعدة بيانات المنشورات المحلية.");}
- const {data,error}=await sb.auth.getSession();if(error){console.error(error);setAuthError("loginError","تعذر التحقق من الجلسة. تحقق من اتصال الإنترنت.");return;}
+ // التقط علامة الاستعادة قبل getSession؛ قد تعالج Supabase الرابط وتزيل بياناته أثناء التحقق.
  const recoveryLink=window.location.hash.includes("type=recovery")||new URLSearchParams(window.location.search).get("type")==="recovery";
- if(recoveryLink){passwordRecoveryMode=true;authReady=false;showPage("recovery");}
- else if(data.session?.user){
-  try{await enterApp(data.session.user);}catch(e){setAuthError("loginError",e.message||"تعذر إعداد ملف الحساب.");showPage("login");}
- }else{authReady=false;showPage("login");}
+ if(recoveryLink){passwordRecoveryMode=true;authReady=false;}
+ // سجّل مستمع الاستعادة قبل قراءة الجلسة حتى لا يفوت حدث PASSWORD_RECOVERY.
  sb.auth.onAuthStateChange((event,session)=>{
   if(event==="PASSWORD_RECOVERY") { passwordRecoveryMode=true;authReady=false;showPage("recovery");return; }
   if(passwordRecoveryMode)return;
@@ -414,6 +412,11 @@ async function start(){
    }
   }else if(event==="SIGNED_OUT"&&authReady){leaveApp();}
  });
+ const {data,error}=await sb.auth.getSession();if(error){console.error(error);setAuthError("loginError","تعذر التحقق من الجلسة. تحقق من اتصال الإنترنت.");return;}
+ if(recoveryLink||passwordRecoveryMode){passwordRecoveryMode=true;authReady=false;showPage("recovery");}
+ else if(data.session?.user){
+  try{await enterApp(data.session.user);}catch(e){setAuthError("loginError",e.message||"تعذر إعداد ملف الحساب.");showPage("login");}
+ }else{authReady=false;showPage("login");}
 }
 start();
 </script>
