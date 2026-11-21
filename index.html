@@ -20,27 +20,32 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
 .nav{position:fixed;bottom:0;left:0;right:0;z-index:5;display:flex;justify-content:space-around;padding:9px 2px;background:#090613f5;border-top:1px solid #ffffff25}.nav button{background:transparent;color:#c8bbdf;font-size:11px;padding:8px 5px}.nav button.active{color:#8ce9ff}
 .profile-head{display:flex;align-items:center;gap:12px}.avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:25px;background:linear-gradient(135deg,#9c61ff,#1e8dff);flex-shrink:0}
 .post-media{width:100%;max-height:400px;object-fit:contain;border-radius:12px;margin-top:10px}
+/* FLIP full-screen short-video feed */
+body:has(#home.active)>header{display:none}
+body:has(#home.active) main{max-width:none;padding:0 0 calc(58px + env(safe-area-inset-bottom));margin:0}
 .feed-page{padding:0;max-width:none;margin:0;background:#050509}
-.feed-topline{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:center;padding:14px 18px;background:linear-gradient(#050509b8,transparent);border:0;backdrop-filter:none;pointer-events:none}
-.feed-topline>strong{display:none}.feed-topline>div{display:flex;gap:24px;pointer-events:auto}
-.feed-tab{font-size:15px;color:#ffffffb8;padding:7px 2px;text-shadow:0 1px 5px #000}
-.feed-tab.active{color:#fff;border-bottom:2px solid #fff;font-weight:bold}
-.video-feed{height:calc(100dvh - 62px);overflow-y:auto;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;padding:0;margin:0;background:#050509}
-.video-feed>.card{position:relative;isolation:isolate;overflow:hidden;scroll-snap-align:start;height:calc(100dvh - 62px);min-height:500px;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:#08080d;display:block}
-.video-feed .post-media{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:cover;border-radius:0;margin:0;background:#08080d;z-index:-1}
-.video-feed video.post-media{object-fit:cover}
-.video-feed .profile-head{position:absolute;top:58px;right:15px;left:82px;z-index:2;padding:8px 10px;border-radius:30px;background:linear-gradient(90deg,#0000,#0007);text-shadow:0 1px 4px #000}
-.video-feed .profile-head .avatar{width:38px;height:38px;border:1px solid #fff8}
-.video-feed .profile-head button{padding:7px 12px;background:#ffffff20;border:1px solid #fff;color:#fff}
-.video-feed>.card>p{position:absolute;bottom:20px;right:16px;left:84px;z-index:2;margin:0;padding:12px 10px;color:#fff;font-size:14px;text-shadow:0 1px 5px #000;background:linear-gradient(transparent,#0006);border-radius:10px}
-.video-feed .post-actions{position:absolute;right:12px;bottom:95px;z-index:3;width:58px;display:flex;flex-direction:column;gap:13px;margin:0;align-items:center}
-.video-feed .post-actions button{width:52px;min-width:0;flex:none;padding:9px 3px;border-radius:16px;background:#1119;border:1px solid #ffffff35;font-size:11px;line-height:1.35;backdrop-filter:blur(8px)}
-.video-feed .post-actions .like-button.liked{background:#c52e85dd}
-.video-feed .comments{position:absolute;left:10px;right:78px;bottom:5px;z-index:4;margin:0;padding:7px 9px;border:0;border-radius:14px;background:#0505099c;max-height:120px;overflow:auto;backdrop-filter:blur(8px)}
-.video-feed .comments>strong{font-size:11px}.video-feed .comments .comment{display:inline-block;margin:3px;padding:5px 7px;font-size:11px;background:#ffffff20}
-.video-feed .comment-form{margin-top:5px}.video-feed .comment-form input{padding:8px;margin:0;font-size:12px}.video-feed .comment-form button{padding:8px 10px;font-size:11px}
+.feed-topline{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;background:linear-gradient(#0009,transparent);border:0;pointer-events:none}
+.feed-topline>strong{display:block;font-size:25px;font-weight:900;letter-spacing:2px;color:#fff;text-shadow:0 2px 8px #000}
+.feed-topline>div{display:flex;gap:24px;pointer-events:auto}
+.feed-tab{font-size:16px;color:#ffffffc9;padding:7px 2px;text-shadow:0 1px 5px #000;cursor:pointer}
+.feed-tab.active{color:#fff;border-bottom:3px solid #a64cff;font-weight:bold}
+.video-feed{height:calc(100dvh - 58px - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior-y:contain;scroll-snap-type:y mandatory;padding:0;margin:0;background:#050509}
+.video-feed>.card{position:relative;isolation:isolate;overflow:hidden;scroll-snap-align:start;height:100%;min-height:500px;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:#08080d;display:block}
+.video-feed .post-media{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:cover;border-radius:0;margin:0;background:linear-gradient(145deg,#171323,#09080e);z-index:0}
+.video-feed .profile-head{position:absolute;top:calc(62px + env(safe-area-inset-top));right:14px;left:86px;z-index:2;padding:7px 10px;border-radius:28px;background:linear-gradient(90deg,#0000,#0008);text-shadow:0 1px 4px #000}
+.video-feed .profile-head .avatar{width:38px;height:38px;border:1px solid #fff9}
+.video-feed .profile-head button{padding:7px 12px;background:#8b42ed;border:1px solid #ffffff80;color:#fff;border-radius:20px}
+.video-feed>.card>p{position:absolute;bottom:22px;right:16px;left:82px;z-index:2;margin:0;padding:12px 8px;color:#fff;font-size:14px;text-shadow:0 1px 5px #000;background:linear-gradient(transparent,#0008);border-radius:10px}
+.video-feed .post-actions{position:absolute;right:10px;bottom:135px;z-index:3;width:60px;display:flex;flex-direction:column;gap:15px;margin:0;align-items:center}
+.video-feed .post-actions button{width:54px;min-width:0;flex:none;padding:8px 2px;border-radius:18px;background:#09091299;border:1px solid #ffffff45;font-size:11px;line-height:1.35;backdrop-filter:blur(8px)}
+.video-feed .post-actions .like-button.liked{background:#c52e85e8}
+.video-feed .comments{display:none;position:absolute;left:0;right:0;bottom:0;z-index:7;margin:0;padding:18px 14px calc(18px + env(safe-area-inset-bottom));border:1px solid #ffffff22;border-radius:22px 22px 0 0;background:#11101cf5;max-height:58%;overflow:auto;backdrop-filter:blur(18px)}
+.video-feed .comments.comments-open{display:block}
+.video-feed .comments>strong{font-size:15px}.video-feed .comments .comment{display:block;margin:7px 0;padding:8px 10px;font-size:13px;background:#ffffff12}
+.video-feed .comment-form{margin-top:10px}.video-feed .comment-form input{padding:11px;margin:0;font-size:13px}.video-feed .comment-form button{padding:10px 13px;font-size:12px}
 .nav{background:#050509f5;border-top:1px solid #ffffff24;padding:5px 2px calc(5px + env(safe-area-inset-bottom));backdrop-filter:blur(14px)}
-@media(max-width:480px){.video-feed{height:calc(100dvh - 58px)}.video-feed>.card{height:calc(100dvh - 58px);min-height:500px}.video-feed .profile-head{top:54px}.video-feed>.card>p{bottom:18px}.video-feed .post-actions{bottom:100px}}
+.nav button{font-size:10px;padding:7px 3px}
+@media(max-width:480px){.video-feed{height:calc(100dvh - 58px - env(safe-area-inset-bottom))}.video-feed>.card{height:100%;min-height:500px}.video-feed .profile-head{top:calc(58px + env(safe-area-inset-top))}.video-feed>.card>p{bottom:18px}.video-feed .post-actions{bottom:125px}}
 .empty{text-align:center;padding:25px;color:#aaa}.notice{font-size:12px;color:#cbbbe9;line-height:1.7}
 .post-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.post-actions button{flex:1;min-width:100px}.like-button.liked{background:linear-gradient(110deg,#c52e85,#7135d5)}
 .comments{border-top:1px solid #ffffff20;margin-top:15px;padding-top:10px}.comment{padding:9px 10px;margin:7px 0;background:#ffffff0c;border-radius:10px;font-size:13px}.comment strong{color:#b99aff;margin-left:5px}
@@ -346,7 +351,7 @@ function postHTML(post){
  if(!Array.isArray(post.likes))post.likes=[];if(!Array.isArray(post.comments))post.comments=[];
  const liked=post.likes.includes(currentUser),comments=post.comments.map(c=>`<div class="comment"><strong>${escapeHTML(c.author)}</strong>${escapeHTML(c.text)}</div>`).join("");
  const follow=post.author!==currentUser?`<button class="${isFollowing(post.author)?"following":""}" data-action="follow" data-user="${escapeHTML(post.author)}">${isFollowing(post.author)?"✓ تتابعه":"＋ متابعة"}</button>`:"";
- return `<article class="card"><div class="profile-head"><div class="avatar">F</div><div style="flex:1"><strong>${escapeHTML(post.author)}</strong></div>${follow}</div><p>${escapeHTML(post.caption||"")}</p>${mediaHTML(post)}<div class="post-actions"><button class="like-button ${liked?"liked":""}" data-action="like" data-id="${escapeHTML(post.id)}">${liked?"❤️":"🤍"} إعجاب (${post.likes.length})</button><button class="secondary" data-action="focus-comment" data-id="${escapeHTML(post.id)}">💬 تعليق (${post.comments.length})</button>${post.author!==currentUser?`<button class="secondary" data-action="message-user" data-user="${escapeHTML(post.author)}">✉ مراسلة</button>`:""}</div><div class="comments"><strong>التعليقات</strong><div>${comments||'<p class="muted">لا توجد تعليقات بعد.</p>'}</div><form class="comment-form" data-id="${escapeHTML(post.id)}"><input name="comment" maxlength="300" placeholder="اكتب تعليقاً..." required><button type="submit">إرسال</button></form></div></article>`;
+ return `<article class="card"><div class="profile-head"><div class="avatar">F</div><div style="flex:1"><strong>${escapeHTML(post.author)}</strong></div>${follow}</div>${mediaHTML(post)}<p>${escapeHTML(post.caption||"")}</p><div class="post-actions"><button class="like-button ${liked?"liked":""}" data-action="like" data-id="${escapeHTML(post.id)}">${liked?"❤️":"🤍"}<br>إعجاب (${post.likes.length})</button><button class="secondary" data-action="focus-comment" data-id="${escapeHTML(post.id)}">💬<br>تعليق (${post.comments.length})</button>${post.author!==currentUser?`<button class="secondary" data-action="message-user" data-user="${escapeHTML(post.author)}">✉<br>مراسلة</button>`:""}</div><div class="comments"><strong>التعليقات</strong><div>${comments||'<p class="muted">لا توجد تعليقات بعد.</p>'}</div><form class="comment-form" data-id="${escapeHTML(post.id)}"><input name="comment" maxlength="300" placeholder="اكتب تعليقاً..." required><button type="submit">إرسال</button></form></div></article>`;
 }
 function renderFollowing(){const list=myFollowing(),box=$("followingList");if(!list.length){box.innerHTML='<p class="empty">لا تتابع أي حساب حالياً.</p>';return;}box.innerHTML=list.map(n=>`<div class="follow-row"><strong>👤 ${escapeHTML(n)}</strong><button class="following" data-action="follow" data-user="${escapeHTML(n)}">إلغاء المتابعة</button></div>`).join("");}
 function setupVideoPlayback(){
@@ -506,7 +511,7 @@ document.addEventListener("click",async e=>{
   if(b.dataset.action==="notification-read"){await markNotificationRead(b.dataset.id);return;}
  const post=posts.find(p=>p.id===b.dataset.id);if(!post)return;
  if(b.dataset.action==="like"){if(!Array.isArray(post.likes))post.likes=[];const i=post.likes.indexOf(currentUser);const adding=i<0;if(i>=0)post.likes.splice(i,1);else post.likes.push(currentUser);try{await savePost(post);render();if(adding&&post.author!==currentUser)void createNotification(post.author,"like","أعجب "+currentUser+" بمنشورك");}catch(err){alert("تعذر حفظ الإعجاب.");}}
- if(b.dataset.action==="focus-comment"){const input=b.closest(".card")?.querySelector('input[name="comment"]');if(input)input.focus();}
+ if(b.dataset.action==="focus-comment"){const card=b.closest(".card"),panel=card?.querySelector(".comments"),input=panel?.querySelector('input[name="comment"]');if(panel)panel.classList.add("comments-open");if(input)setTimeout(()=>input.focus(),80);}
 });
 document.addEventListener("submit",async e=>{const form=e.target.closest(".comment-form");if(!form)return;e.preventDefault();const post=posts.find(p=>p.id===form.dataset.id),input=form.querySelector('input[name="comment"]'),text=input.value.trim();if(!post||!text)return;if(!Array.isArray(post.comments))post.comments=[];post.comments.push({author:currentUser,text,createdAt:Date.now()});try{await savePost(post);render();if(post.author!==currentUser)void createNotification(post.author,"comment","علّق "+currentUser+" على منشورك: "+text);}catch(err){alert("تعذر حفظ التعليق.");}});
 async function seedDemoVideos(){
