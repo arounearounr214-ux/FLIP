@@ -56,6 +56,25 @@ body:has(#home.active) main{max-width:none;padding:0 0 calc(58px + env(safe-area
 .chat-box{height:340px;overflow-y:auto;padding:12px;background:#09071480;border:1px solid #ffffff18;border-radius:15px;margin:12px 0}.message{max-width:82%;padding:11px 13px;border-radius:15px;margin:8px 0;line-height:1.5;overflow-wrap:anywhere}
 .message.mine{margin-right:auto;background:linear-gradient(120deg,#7135d5,#236fca);border-bottom-left-radius:4px}.message.theirs{margin-left:auto;background:#ffffff17;border-bottom-right-radius:4px}.message-time{display:block;font-size:10px;color:#ddd;margin-top:5px}
 .chat-title{display:flex;align-items:center;justify-content:space-between;gap:10px}.event-participants{margin-top:12px;padding:12px;background:#ffffff09;border:1px solid #ffffff18;border-radius:12px}.participant-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #ffffff12}.participant-row:last-child{border-bottom:0}.online-dot{color:#8ce9ff}.error{color:#ff9cba;font-size:13px;line-height:1.6;min-height:18px}.success{color:#8ce9ff;font-size:13px;line-height:1.6;min-height:18px}
+
+/* FLIP immersive feed: full-bleed video with floating controls */
+.video-feed{height:calc(100dvh - 58px - env(safe-area-inset-bottom));padding:0;gap:0}
+.video-feed>.flip-feed-item{position:relative;height:100%;min-height:100%;width:100%;margin:0;padding:0;border:0;border-radius:0;overflow:hidden;background:#050509;scroll-snap-align:start;isolation:isolate}
+.video-feed>.flip-feed-item>.post-media{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-fit:cover;border:0;border-radius:0;margin:0;z-index:0;background:#08080d}
+.video-feed>.flip-feed-item>.feed-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,#0007 0%,transparent 24%,transparent 55%,#0009 100%)}
+.video-feed .feed-creator{position:absolute;z-index:2;right:16px;left:88px;bottom:100px;display:flex;align-items:center;gap:9px;text-shadow:0 2px 8px #000}
+.video-feed .feed-creator .avatar{width:38px;height:38px;border:1px solid #fff9}
+.video-feed .feed-creator strong{font-size:14px}
+.video-feed .feed-creator .feed-follow{padding:6px 11px;border-radius:18px;background:#8b42ed;border:1px solid #fff8;font-size:11px}
+.video-feed .feed-caption{position:absolute;z-index:2;right:16px;left:86px;bottom:54px;margin:0;color:#fff;font-size:13px;line-height:1.5;text-shadow:0 2px 7px #000}
+.video-feed .feed-actions{position:absolute;z-index:3;right:10px;bottom:130px;width:58px;display:flex;flex-direction:column;align-items:center;gap:17px;margin:0}
+.video-feed .feed-actions button{width:52px;min-height:48px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:17px;background:#09091288;border:1px solid #ffffff40;backdrop-filter:blur(9px);font-size:23px;line-height:1}
+.video-feed .feed-actions button small{font-size:10px;color:#fff}
+.video-feed .feed-actions .like-button.liked{background:#b52b83e8}
+.video-feed .comments{z-index:8}
+.video-feed .profile-head,.video-feed>.flip-feed-item>p:not(.feed-caption){display:none!important}
+@media(max-width:480px){.video-feed{height:calc(100dvh - 58px - env(safe-area-inset-bottom))}.video-feed .feed-actions{right:8px}.video-feed .feed-creator,.video-feed .feed-caption{right:13px}}
+
 </style>
 </head>
 <body>
@@ -350,8 +369,19 @@ function mediaHTML(post){
 function postHTML(post){
  if(!Array.isArray(post.likes))post.likes=[];if(!Array.isArray(post.comments))post.comments=[];
  const liked=post.likes.includes(currentUser),comments=post.comments.map(c=>`<div class="comment"><strong>${escapeHTML(c.author)}</strong>${escapeHTML(c.text)}</div>`).join("");
- const follow=post.author!==currentUser?`<button class="${isFollowing(post.author)?"following":""}" data-action="follow" data-user="${escapeHTML(post.author)}">${isFollowing(post.author)?"✓ تتابعه":"＋ متابعة"}</button>`:"";
- return `<article class="card"><div class="profile-head"><div class="avatar">F</div><div style="flex:1"><strong>${escapeHTML(post.author)}</strong></div>${follow}</div>${mediaHTML(post)}<p>${escapeHTML(post.caption||"")}</p><div class="post-actions"><button class="like-button ${liked?"liked":""}" data-action="like" data-id="${escapeHTML(post.id)}">${liked?"❤️":"🤍"}<br>إعجاب (${post.likes.length})</button><button class="secondary" data-action="focus-comment" data-id="${escapeHTML(post.id)}">💬<br>تعليق (${post.comments.length})</button>${post.author!==currentUser?`<button class="secondary" data-action="message-user" data-user="${escapeHTML(post.author)}">✉<br>مراسلة</button>`:""}</div><div class="comments"><strong>التعليقات</strong><div>${comments||'<p class="muted">لا توجد تعليقات بعد.</p>'}</div><form class="comment-form" data-id="${escapeHTML(post.id)}"><input name="comment" maxlength="300" placeholder="اكتب تعليقاً..." required><button type="submit">إرسال</button></form></div></article>`;
+ const follow=post.author!==currentUser?`<button class="feed-follow ${isFollowing(post.author)?"following":""}" data-action="follow" data-user="${escapeHTML(post.author)}">${isFollowing(post.author)?"✓":"＋ متابعة"}</button>`:"";
+ return `<article class="card flip-feed-item">
+   ${mediaHTML(post)}
+   <div class="feed-shade"></div>
+   <div class="feed-creator"><div class="avatar">F</div><strong>${escapeHTML(post.author)}</strong>${follow}</div>
+   <p class="feed-caption">${escapeHTML(post.caption||"")}</p>
+   <div class="post-actions feed-actions">
+    <button class="like-button ${liked?"liked":""}" data-action="like" data-id="${escapeHTML(post.id)}"><span>${liked?"♥":"♡"}</span><small>${post.likes.length}</small></button>
+    <button class="secondary" data-action="focus-comment" data-id="${escapeHTML(post.id)}"><span>●</span><small>${post.comments.length}</small></button>
+    ${post.author!==currentUser?`<button class="secondary" data-action="message-user" data-user="${escapeHTML(post.author)}"><span>✉</span><small>رسالة</small></button>`:""}
+   </div>
+   <div class="comments"><strong>التعليقات</strong><div>${comments||'<p class="muted">لا توجد تعليقات بعد.</p>'}</div><form class="comment-form" data-id="${escapeHTML(post.id)}"><input name="comment" maxlength="300" placeholder="اكتب تعليقاً..." required><button type="submit">إرسال</button></form></div>
+  </article>`;
 }
 function renderFollowing(){const list=myFollowing(),box=$("followingList");if(!list.length){box.innerHTML='<p class="empty">لا تتابع أي حساب حالياً.</p>';return;}box.innerHTML=list.map(n=>`<div class="follow-row"><strong>👤 ${escapeHTML(n)}</strong><button class="following" data-action="follow" data-user="${escapeHTML(n)}">إلغاء المتابعة</button></div>`).join("");}
 function setupVideoPlayback(){
