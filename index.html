@@ -308,6 +308,17 @@ async function sendFollowNotification(username){
  const {error}=await sb.from("flip_notifications").insert({recipient_id:target.id,actor_id:currentUserId,actor_username:currentUser,notification_type:"follow",message:`بدأ ${currentDisplayName||currentUser} بمتابعتك`});
  if(error)throw error;
 }
+async function sendPostNotification(postAuthor,type,message){
+ if(!postAuthor||postAuthor===currentUser)return;
+ const {data:target,error:lookupError}=await sb.from("profiles").select("id").eq("username",postAuthor).maybeSingle();
+ if(lookupError)throw lookupError;
+ if(!target?.id||target.id===currentUserId)return;
+ const {error}=await sb.from("flip_notifications").insert({
+  recipient_id:target.id,actor_id:currentUserId,actor_username:currentUser,
+  notification_type:type,message
+ });
+ if(error)throw error;
+}
 async function markNotificationRead(id){
  const {error}=await sb.from("flip_notifications").update({read_at:new Date().toISOString()}).eq("id",id).eq("recipient_id",currentUserId);
  if(error){$("notificationsMessage").textContent="تعذر تحديث الإشعار: "+error.message;return;}
@@ -462,10 +473,34 @@ document.addEventListener("click",async e=>{
  if(b.dataset.action==="follow"){const n=b.dataset.user;if(!n||n===currentUser)return;const a=myFollowing(),i=a.indexOf(n);if(i>=0)a.splice(i,1);else{a.push(n);try{await sendFollowNotification(n);}catch(err){console.warn("Follow notification was not sent",err);}}saveFollowing();render();return;}
  if(b.dataset.action==="notification-read"){await markNotificationRead(b.dataset.id);return;}
  const post=posts.find(p=>p.id===b.dataset.id);if(!post)return;
- if(b.dataset.action==="like"){if(!Array.isArray(post.likes))post.likes=[];const i=post.likes.indexOf(currentUser);if(i>=0)post.likes.splice(i,1);else post.likes.push(currentUser);try{await savePost(post);render();}catch(err){alert("تعذر حفظ الإعجاب.");}}
+ if(b.dataset.action==="like"){
+  if(!Array.isArray(post.likes))post.likes=[];
+  const i=post.likes.indexOf(currentUser),adding=i<0;
+  if(!adding)post.likes.splice(i,1);else post.likes.push(currentUser);
+  try{
+   await savePost(post);render();
+   if(adding&&post.author!==currentUser){
+    try{await sendPostNotification(post.author,"like",`أعجب ${currentDisplayName||currentUser} بمنشورك`);}
+    catch(err){console.warn("Like notification was not sent",err);}
+   }
+  }catch(err){alert("تعذر حفظ الإعجاب.");}
+ }
  if(b.dataset.action==="focus-comment"){const input=b.closest(".card")?.querySelector('input[name="comment"]');if(input)input.focus();}
 });
-document.addEventListener("submit",async e=>{const form=e.target.closest(".comment-form");if(!form)return;e.preventDefault();const post=posts.find(p=>p.id===form.dataset.id),input=form.querySelector('input[name="comment"]'),text=input.value.trim();if(!post||!text)return;if(!Array.isArray(post.comments))post.comments=[];post.comments.push({author:currentUser,text,createdAt:Date.now()});try{await savePost(post);render();}catch(err){alert("تعذر حفظ التعليق.");}});
+document.addEventListener("submit",async e=>{
+ const form=e.target.closest(".comment-form");if(!form)return;e.preventDefault();
+ const post=posts.find(p=>p.id===form.dataset.id),input=form.querySelector('input[name="comment"]'),text=input.value.trim();
+ if(!post||!text)return;
+ if(!Array.isArray(post.comments))post.comments=[];
+ post.comments.push({author:currentUser,text,createdAt:Date.now()});
+ try{
+  await savePost(post);render();
+  if(post.author!==currentUser){
+   try{await sendPostNotification(post.author,"comment",`علّق ${currentDisplayName||currentUser} على منشورك: ${text}`);}
+   catch(err){console.warn("Comment notification was not sent",err);}
+  }
+ }catch(err){alert("تعذر حفظ التعليق.");}
+});
 // سجّل مستمع أحداث المصادقة فوراً، قبل أي عمليات غير متزامنة، حتى لا نفوّت PASSWORD_RECOVERY.
 sb.auth.onAuthStateChange((event,session)=>{
  if(event==="PASSWORD_RECOVERY"){
