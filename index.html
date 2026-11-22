@@ -531,12 +531,20 @@ document.addEventListener("click",async e=>{
 document.addEventListener("submit",async e=>{const form=e.target.closest(".comment-form");if(!form)return;e.preventDefault();const post=posts.find(p=>p.id===form.dataset.id),input=form.querySelector('input[name="comment"]'),text=input.value.trim();if(!post||!text)return;if(!Array.isArray(post.comments))post.comments=[];post.comments.push({author:currentUser,text,createdAt:Date.now()});try{await savePost(post);render();if(post.author!==currentUser)void createNotification(post.author,"comment","علّق "+currentUser+" على منشورك: "+text);}catch(err){alert("تعذر حفظ التعليق.");}});
 async function seedDemoVideos(){
  const samples=[
-  {id:"flip-demo-dubai",author:"FLIP",caption:"اكتشفوا جمال المدن والمناظر حول العالم 🌆 #سفر #FLIP",videoUrl:"https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",createdAt:Date.now()-3000,demo:true},
-  {id:"flip-demo-nature",author:"FLIP",caption:"لحظات ممتعة ومشاهد تلهمك لاكتشاف الجديد 🌿 #طبيعة #FLIP",videoUrl:"https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",createdAt:Date.now()-2000,demo:true},
-  {id:"flip-demo-travel",author:"FLIP",caption:"ابدأ رحلتك واكتشف قصصاً جديدة 🎬 #ترفيه #FLIP",videoUrl:"https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",createdAt:Date.now()-1000,demo:true}
+  {id:"flip-demo-dubai",author:"FLIP",caption:"اكتشفوا جمال المدن والمناظر حول العالم 🌆 #سفر #FLIP",videoUrl:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",createdAt:Date.now()-3000,demo:true},
+  {id:"flip-demo-nature",author:"FLIP",caption:"لحظات ممتعة ومشاهد تلهمك لاكتشاف الجديد 🌿 #طبيعة #FLIP",videoUrl:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",createdAt:Date.now()-2000,demo:true},
+  {id:"flip-demo-travel",author:"FLIP",caption:"ابدأ رحلتك واكتشف قصصاً جديدة 🎬 #ترفيه #FLIP",videoUrl:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",createdAt:Date.now()-1000,demo:true}
  ];
  for(const sample of samples){
-  if(!posts.some(p=>p.id===sample.id)){sample.likes=[];sample.comments=[];await savePost(sample);posts.push(sample);}
+  const existing=posts.find(p=>p.id===sample.id);
+  if(existing){
+   // Refresh stale demo URLs already saved in IndexedDB on this device.
+   existing.videoUrl=sample.videoUrl;
+   existing.demo=true;
+   await savePost(existing);
+  }else{
+   sample.likes=[];sample.comments=[];await savePost(sample);posts.push(sample);
+  }
  }
 }
 async function start(){
