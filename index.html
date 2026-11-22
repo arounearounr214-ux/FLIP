@@ -252,6 +252,7 @@ async function enterApp(user){
   currentUserId=user.id;currentUser=profile.username;currentDisplayName=profile.display_name||profile.username;
   currentEmail=user.email||"";authReady=true;
   localStorage.setItem("flip_user",currentUser);myFollowing();
+  await syncPostsForUser();
   $("navigation").hidden=false;$("profileEmail").textContent=currentEmail;
   $("profileName").textContent=currentDisplayName;
   showPage("home");
@@ -332,8 +333,29 @@ $("logout").onclick=async()=>{try{const {error}=await sb.auth.signOut();if(error
 
 function openDB(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,1);request.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains("posts"))d.createObjectStore("posts",{keyPath:"id"});};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
 function dbAction(store,mode,action){return new Promise((resolve,reject)=>{const tx=db.transaction(store,mode);const req=action(tx.objectStore(store));req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-async function savePost(post){return dbAction("posts","readwrite",s=>s.put(post));}
+async function savePost(post){
+ await dbAction("posts","readwrite",s=>s.put(post));
+ if(authReady&&!post.demo&&currentUserId&&post.author===currentUser){
+  const row={id:String(post.id),user_id:currentUserId,author:post.author,caption:post.caption||"",video_url:post.videoUrl||null,created_at:new Date(post.createdAt||Date.now()).toISOString(),likes:Array.isArray(post.likes)?post.likes:[],comments:Array.isArray(post.comments)?post.comments:[]};
+  const {error}=await sb.from("flip_posts").upsert(row,{onConflict:"id"});
+  if(error)throw error;
+ }
+}
 async function loadPosts(){return dbAction("posts","readonly",s=>s.getAll());}
+async function syncPostsForUser(){
+ const local=await loadPosts();
+ const ownLocal=local.filter(p=>!p.demo&&p.author===currentUser&&(!p.file||p.videoUrl));
+ for(const p of ownLocal){
+  const row={id:String(p.id),user_id:currentUserId,author:p.author,caption:p.caption||"",video_url:p.videoUrl,created_at:new Date(p.createdAt||Date.now()).toISOString(),likes:Array.isArray(p.likes)?p.likes:[],comments:Array.isArray(p.comments)?p.comments:[]};
+  const {error}=await sb.from("flip_posts").upsert(row,{onConflict:"id"});if(error)console.warn("Local post sync:",error.message);
+ }
+ const {data,error}=await sb.from("flip_posts").select("id,user_id,author,caption,video_url,created_at,likes,comments").order("created_at",{ascending:true});
+ if(error)throw new Error("تعذر تحميل المنشورات المشتركة: "+error.message);
+ const demos=local.filter(p=>p.demo);
+ const shared=(data||[]).map(r=>({id:r.id,author:r.author,caption:r.caption||"",videoUrl:r.video_url||"",createdAt:new Date(r.created_at).getTime(),likes:Array.isArray(r.likes)?r.likes:[],comments:Array.isArray(r.comments)?r.comments:[],userId:r.user_id}));
+ posts=[...shared,...demos];
+ for(const p of shared)await dbAction("posts","readwrite",store=>store.put(p));
+}
 function escapeHTML(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function clearUrls(){mediaUrls.forEach(URL.revokeObjectURL);mediaUrls=[];}
 function mediaHTML(post){
