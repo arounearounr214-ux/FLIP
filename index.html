@@ -114,8 +114,8 @@ button{border:0;border-radius:12px;padding:13px 17px;color:white;background:line
  <p class="notice">يستطيع المستخدم إرسال طلب مشاركة، ويظهر الطلب للمضيف ليقبله أو يرفضه. هذه النسخة لا تشغّل الكاميرا ولا تنقل الفيديو ولا تنفّذ بثاً مباشراً.</p>
 </section>
 <section id="messages" class="page"><h2>💬 الرسائل</h2>
- <div class="card" id="messageStart"><h3>ابدأ محادثة جديدة</h3><p class="muted">اكتب اسم الحساب الذي تريد مراسلته.</p><input id="recipientName" maxlength="30" placeholder="اسم المستخدم"><button class="full" id="openChat">فتح المحادثة</button><p class="notice">الرسائل والمتابعات والمنشورات في هذه النسخة تجريبية ومحفوظة محلياً على هذا الجهاز فقط.</p></div>
- <div class="card" id="chatPanel" hidden><div class="chat-title"><div><strong id="chatWithName">المحادثة</strong><div class="muted">محادثة محلية تجريبية</div></div><button class="secondary" id="backToChats">رجوع</button></div><div class="chat-box" id="chatBox"></div><form class="send-form" id="sendMessageForm"><input id="messageText" maxlength="1000" placeholder="اكتب رسالتك..." required><button type="submit">إرسال</button></form></div>
+ <div class="card" id="messageStart"><h3>ابدأ محادثة جديدة</h3><p class="muted">اكتب اسم الحساب الذي تريد مراسلته.</p><input id="recipientName" maxlength="30" placeholder="اسم المستخدم"><button class="full" id="openChat">فتح المحادثة</button><p class="notice">الرسائل محفوظة سحابياً وتظهر في حسابك على أجهزتك.</p></div>
+ <div class="card" id="chatPanel" hidden><div class="chat-title"><div><strong id="chatWithName">المحادثة</strong><div class="muted">محادثة خاصة</div></div><button class="secondary" id="backToChats">رجوع</button></div><div class="chat-box" id="chatBox"></div><form class="send-form" id="sendMessageForm"><input id="messageText" maxlength="1000" placeholder="اكتب رسالتك..." required><button type="submit">إرسال</button></form></div>
  <div class="card" id="conversationsCard"><h3>محادثاتي</h3><div id="conversationsList"></div></div>
 </section>
 <section id="profile" class="page"><h2>حسابي</h2><div class="card"><div class="profile-head"><div class="avatar">F</div><div><h3 id="profileName"></h3><span class="muted" id="profileEmail"></span></div></div><div class="stats"><span id="profileCount">0 منشور</span><span id="followingCount">0 أتابع</span></div><button class="secondary full" id="logout">تسجيل الخروج</button></div><div class="card"><h3>👥 الحسابات التي أتابعها</h3><div id="followingList"></div></div><h3>منشوراتي</h3><div id="myPosts"></div></section>
@@ -133,9 +133,8 @@ let enteringUserId="",enteringPromise=null;
 let eventsCache=[];
 let eventCameraRows=[];
 let following={};try{following=JSON.parse(localStorage.getItem("flip_following")||"{}");}catch(e){following={};}
-let messages=[];try{messages=JSON.parse(localStorage.getItem("flip_messages")||"[]");if(!Array.isArray(messages))messages=[];}catch(e){messages=[];}
+let messages=[];
 let activeChat="";
-function saveMessages(){localStorage.setItem("flip_messages",JSON.stringify(messages));}
 function updateMessageBadge(){
  const badge=$("messageBadge");if(!badge)return;
  const count=messages.filter(m=>m.to===currentUser&&!m.readAt).length;
@@ -149,7 +148,7 @@ function showPage(name){
  const page=$(name);if(!page)return;
  page.classList.add("active");
  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===name));
- if(name==="messages"){closeChatView();renderConversations();updateMessageBadge();}
+ if(name==="messages"){closeChatView();void loadMessages();}
  if(name==="activity"&&authReady)markAllNotificationsRead();
  if(authReady)render();
  if(name==="events"&&authReady)loadEvents();
@@ -256,7 +255,7 @@ async function enterApp(user){
   $("navigation").hidden=false;$("profileEmail").textContent=currentEmail;
   $("profileName").textContent=currentDisplayName;
   showPage("home");
-  void loadNotificationCount();updateMessageBadge();
+  void loadNotificationCount();void loadMessages();
  })();
  try{return await enteringPromise;}
  finally{if(enteringUserId===user.id){enteringUserId="";enteringPromise=null;}}
@@ -528,13 +527,43 @@ $("publish").onclick=async()=>{
  }catch(e){console.error(e);alert("تعذر نشر المنشور: "+(e.message||"تحقق من إعداد تخزين الفيديو في Supabase."));}
  finally{button.disabled=false;button.textContent="نشر";}
 };
-function openChat(name){name=String(name||"").trim();if(!name){alert("اكتب اسم المستخدم.");return;}if(name===currentUser){alert("لا يمكنك مراسلة نفسك.");return;}activeChat=name;let changed=false;messages.forEach(m=>{if(m.from===name&&m.to===currentUser&&!m.readAt){m.readAt=Date.now();changed=true;}});if(changed)saveMessages();updateMessageBadge();$("chatWithName").textContent="👤 "+name;$("messageStart").hidden=true;$("conversationsCard").hidden=true;$("chatPanel").hidden=false;renderChat();$("messageText").focus();}
+async function loadMessages(){
+ if(!authReady||!currentUserId)return;
+ const box=$("conversationsList");if(box)box.innerHTML='<p class="muted">جارٍ تحميل المحادثات...</p>';
+ try{
+  const {data,error}=await sb.from("flip_messages")
+   .select("id,sender_id,recipient_id,content,created_at,read_at")
+   .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
+   .order("created_at",{ascending:true}).limit(500);
+  if(error)throw error;
+  const ids=[...new Set((data||[]).flatMap(m=>[m.sender_id,m.recipient_id]))];
+  let profiles=[];
+  if(ids.length){const result=await sb.from("profiles").select("id,username").in("id",ids);if(result.error)throw result.error;profiles=result.data||[];}
+  const names=new Map(profiles.map(p=>[p.id,p.username]));
+  messages=(data||[]).map(m=>({id:m.id,from:names.get(m.sender_id)||"مستخدم",to:names.get(m.recipient_id)||"مستخدم",senderId:m.sender_id,recipientId:m.recipient_id,text:m.content,createdAt:new Date(m.created_at).getTime(),readAt:m.read_at?new Date(m.read_at).getTime():null}));
+  renderConversations();updateMessageBadge();
+  if(activeChat)renderChat();
+ }catch(err){console.error("Load FLIP messages:",err);if(box)box.innerHTML='<p class="empty">تعذر تحميل الرسائل: '+escapeHTML(err.message||"خطأ غير معروف")+'</p>';}
+}
+async function openChat(name){
+ name=String(name||"").trim().toLowerCase();
+ if(!name){alert("اكتب اسم المستخدم.");return;}
+ if(name===currentUser){alert("لا يمكنك مراسلة نفسك.");return;}
+ const {data:recipient,error}=await sb.from("profiles").select("id,username").eq("username",name).maybeSingle();
+ if(error){alert("تعذر البحث عن الحساب: "+error.message);return;}
+ if(!recipient){alert("لم نعثر على هذا الحساب.");return;}
+ activeChat=recipient.username;
+ const unread=messages.filter(m=>m.senderId===recipient.id&&m.recipientId===currentUserId&&!m.readAt);
+ for(const m of unread){const {error:readError}=await sb.from("flip_messages").update({read_at:new Date().toISOString()}).eq("id",m.id);if(readError)console.warn("Mark message read:",readError.message);}
+ if(unread.length)await loadMessages();
+ $("chatWithName").textContent="👤 "+recipient.username;$("messageStart").hidden=true;$("conversationsCard").hidden=true;$("chatPanel").hidden=false;renderChat();$("messageText").focus();
+}
 function closeChatView(){activeChat="";$("chatPanel").hidden=true;$("messageStart").hidden=false;$("conversationsCard").hidden=false;}
 function getConversation(){return messages.filter(m=>(m.from===currentUser&&m.to===activeChat)||(m.from===activeChat&&m.to===currentUser)).sort((a,b)=>a.createdAt-b.createdAt);}
-function renderChat(){if(!activeChat)return;const c=getConversation(),box=$("chatBox");if(!c.length){box.innerHTML='<div class="empty">ابدأ المحادثة بإرسال أول رسالة.</div>';return;}box.innerHTML=c.map(m=>`<div class="message ${m.from===currentUser?"mine":"theirs"}">${escapeHTML(m.text)}<span class="message-time">${m.from===currentUser?"أنت":escapeHTML(m.from)}</span></div>`).join("");box.scrollTop=box.scrollHeight;}
+function renderChat(){if(!activeChat)return;const c=getConversation(),box=$("chatBox");if(!c.length){box.innerHTML='<div class="empty">ابدأ المحادثة بإرسال أول رسالة.</div>';return;}box.innerHTML=c.map(m=>`<div class="message ${m.from===currentUser?"mine":"theirs"}">${escapeHTML(m.text)}<span class="message-time">${m.from===currentUser?"أنت":escapeHTML(m.from)} · ${new Date(m.createdAt).toLocaleString("ar")}</span></div>`).join("");box.scrollTop=box.scrollHeight;}
 function renderConversations(){const box=$("conversationsList");if(!box)return;const names=new Set();messages.forEach(m=>{if(m.from===currentUser)names.add(m.to);if(m.to===currentUser)names.add(m.from);});if(!names.size){box.innerHTML='<p class="empty">لا توجد محادثات بعد.</p>';return;}box.innerHTML=[...names].map(n=>{const last=messages.filter(m=>(m.from===currentUser&&m.to===n)||(m.from===n&&m.to===currentUser)).sort((a,b)=>b.createdAt-a.createdAt)[0];return `<div class="chat-user" data-open-chat="${escapeHTML(n)}"><div class="avatar">F</div><strong>${escapeHTML(n)}</strong><span class="muted">${escapeHTML(last?.text||"")}</span></div>`;}).join("");}
-$("openChat").onclick=()=>openChat($("recipientName").value);$("backToChats").onclick=()=>{closeChatView();renderConversations();};
-$("sendMessageForm").onsubmit=e=>{e.preventDefault();const input=$("messageText"),text=input.value.trim();if(!text||!activeChat)return;messages.push({from:currentUser,to:activeChat,text,createdAt:Date.now()});try{saveMessages();input.value="";renderChat();renderConversations();updateMessageBadge();}catch(err){alert("تعذر حفظ الرسالة على الجهاز.");}};
+$("openChat").onclick=()=>{void openChat($("recipientName").value);};$("backToChats").onclick=()=>{closeChatView();renderConversations();};
+$("sendMessageForm").onsubmit=async e=>{e.preventDefault();const input=$("messageText"),text=input.value.trim();if(!text||!activeChat||!currentUserId)return;const {data:recipient,error:lookupError}=await sb.from("profiles").select("id").eq("username",activeChat).maybeSingle();if(lookupError||!recipient){alert("تعذر العثور على مستلم الرسالة.");return;}const {error}=await sb.from("flip_messages").insert({sender_id:currentUserId,recipient_id:recipient.id,content:text});if(error){alert("تعذر إرسال الرسالة: "+error.message);return;}input.value="";await loadMessages();renderChat();};
 document.addEventListener("click",async e=>{
  const chat=e.target.closest("[data-open-chat]");if(chat){openChat(chat.dataset.openChat);return;}
  const b=e.target.closest("button[data-action]");if(!b)return;
